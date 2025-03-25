@@ -89,45 +89,45 @@ def in_RHS(variable: str, grammar) -> bool:
     return False
 
 
-# Cache follow here.
+def get_parts_after_variable(rule, variable):
+    parts = []
+    start = 0
+    while (index := rule.find(variable, start)) != -1:
+        parts.append(rule[index + len(variable):])  # Take substring after 'variable'
+        start = index + 1  # Move start forward
+
+    return parts
+
 def follow(variable, grammar, start_variable):
     follow_list = []
-    print(variable, ": ")
+    print(variable, end = ": ")
     if variable == start_variable:
         follow_list.append(DOLLAR)
 
-        # Ayaan does not like this condition. RHS dekh hi raha anyway. Fair.
         if not in_RHS(variable, grammar):
             print("NOT IN RHS, dollar only", follow_list)
             return follow_list
-        
-    # "A": ["BC", "EFGH", "H"]
+    
     for LHS, RHS in grammar.items():
         for rule in RHS:
             if variable in rule:
-                print("RULE FOUND:", LHS, "->", rule)
                 parts = rule.split(variable)
                 
-                
-                if parts[-1] == "":
-                    print("END OF RULE, FOLLOW PARENT:", LHS)
+                if parts[1:] == [""]:
+                    print("Last term in a rule. FOLLOWING", LHS)
                     follow_list.extend(follow(LHS, grammar, start_variable))
                 
-                else:                    
-                    # new_rule is a substring of the rule string where it is: FIRST OCCURENCE OF VARIABLE -> END
-                    # new_rule = "".join(parts[1:])
-                    first_occurence = rule.find(variable)
-                    new_rule =  rule[first_occurence + 1:]
+                else:
+                    new_rules = get_parts_after_variable(rule, variable)
+                    for new_rule in new_rules:
+                        f = first_of_rule(new_rule)
+                        print("First of", new_rule, ":", f)
 
-                    f = first_of_rule(new_rule)
-                    print("FIRST OF:", new_rule, "IS", f)
-
-                    if has_epsilon(f):
-                        print("EPSILON IN FIRST OF", new_rule, ": FOLLOWS :", LHS)
-                        follow_list.extend(follow(LHS, grammar, start_variable))
-                        f = ignore_epsilon(f)
-                    follow_list.extend(f)
-    
+                        if has_epsilon(f):
+                            print("First has an epsilon. FOLLOWING", LHS) 
+                            follow_list.extend(follow(LHS, grammar, start_variable))
+                            f = ignore_epsilon(f)
+                        follow_list.extend(f)    
     follow_list = sorted(list(set(follow_list)))
     print("FOLLOW OF:", variable, follow_list)
     return follow_list
